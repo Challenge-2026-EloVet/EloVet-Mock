@@ -36,8 +36,9 @@ import {
 } from "./domain/riscoEpidemiologico";
 import { PainelCasosClinicos } from "./components/PainelCasosClinicos";
 import { AgendaClinica } from "./components/AgendaClinica";
+import { BuscaPacientes } from "./components/BuscaPacientes";
 
-type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda";
+type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients";
 type Status = "scheduled" | "check-in" | "consultation" | "finished";
 type Pet = {
   id: number;
@@ -224,6 +225,10 @@ function App() {
     setView("agenda");
     setMenuOpen(false);
   };
+  const openPatients = () => {
+    setView("patients");
+    setMenuOpen(false);
+  };
   const thorRisk = calcularRiscoEpidemiologico({
     raca: "Dachshund",
     idade: 4,
@@ -241,6 +246,7 @@ function App() {
         onHandoff={() => openHandoff(handoffPlan)}
         onCases={openCases}
         onAgenda={openAgenda}
+        onPatients={openPatients}
         menuOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
       />
@@ -265,6 +271,8 @@ function App() {
           <PainelCasosClinicos onBack={openQueue} />
         ) : view === "agenda" ? (
           <AgendaClinica onBack={openAgenda} />
+        ) : view === "patients" ? (
+          <BuscaPacientes onBack={openQueue} onOpenRecord={openRecord} />
         ) : null}
       </main>
     </div>
@@ -279,6 +287,7 @@ function Sidebar({
   onHandoff,
   onCases,
   onAgenda,
+  onPatients,
   menuOpen,
   onClose,
 }: {
@@ -289,6 +298,7 @@ function Sidebar({
   onHandoff: () => void;
   onCases: () => void;
   onAgenda: () => void;
+  onPatients: () => void;
   menuOpen: boolean;
   onClose: () => void;
 }) {
@@ -350,12 +360,12 @@ function Sidebar({
         >
           <CalendarDays size={19} /> Agenda
         </button>
-        <a
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-white/65 hover:bg-white/10"
-          href="#patients"
+        <button
+          onClick={onPatients}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "patients" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
         >
           <PawPrint size={19} /> Pacientes
-        </a>
+        </button>
         <a
           className="flex items-center gap-3 rounded-xl px-4 py-3 text-white/65 hover:bg-white/10"
           href="#team"
@@ -402,6 +412,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
           ? "Documentação clínica inteligente"
           : view === "agenda"
             ? "Agenda da clínica"
+            : view === "patients"
+              ? "Busca na rede nacional"
             : view === "handoff"
               ? "Continuidade do cuidado"
             : view === "cases"
@@ -417,6 +429,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
           ? "Escriba de IA"
           : view === "agenda"
             ? "Visualização dos agendametos marcados"
+            : view === "patients"
+              ? "Busca de pacientes"
             : view === "handoff"
               ? "Handoff de Cuidado"
               : view === "cases"
