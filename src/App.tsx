@@ -37,8 +37,9 @@ import {
 import { PainelCasosClinicos } from "./components/PainelCasosClinicos";
 import { AgendaClinica } from "./components/AgendaClinica";
 import { BuscaPacientes } from "./components/BuscaPacientes";
+import { EquipeClinica } from "./components/EquipeClinica";
 
-type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients";
+type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients" | "team";
 type Status = "scheduled" | "check-in" | "consultation" | "finished";
 type Pet = {
   id: number;
@@ -229,6 +230,10 @@ function App() {
     setView("patients");
     setMenuOpen(false);
   };
+  const openTeam = () => {
+    setView("team");
+    setMenuOpen(false);
+  };
   const thorRisk = calcularRiscoEpidemiologico({
     raca: "Dachshund",
     idade: 4,
@@ -247,6 +252,7 @@ function App() {
         onCases={openCases}
         onAgenda={openAgenda}
         onPatients={openPatients}
+        onTeam={openTeam}
         menuOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
       />
@@ -273,6 +279,8 @@ function App() {
           <AgendaClinica onBack={openAgenda} />
         ) : view === "patients" ? (
           <BuscaPacientes onBack={openQueue} onOpenRecord={openRecord} />
+        ) : view === "team" ? (
+          <EquipeClinica onBack={openQueue} />
         ) : null}
       </main>
     </div>
@@ -288,6 +296,7 @@ function Sidebar({
   onCases,
   onAgenda,
   onPatients,
+  onTeam,
   menuOpen,
   onClose,
 }: {
@@ -299,6 +308,7 @@ function Sidebar({
   onCases: () => void;
   onAgenda: () => void;
   onPatients: () => void;
+  onTeam: () => void;
   menuOpen: boolean;
   onClose: () => void;
 }) {
@@ -366,12 +376,12 @@ function Sidebar({
         >
           <PawPrint size={19} /> Pacientes
         </button>
-        <a
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-white/65 hover:bg-white/10"
-          href="#team"
+        <button
+          onClick={onTeam}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "team" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
         >
           <Users size={19} /> Equipe
-        </a>
+        </button>
       </nav>
       <div className="mt-auto space-y-2 text-sm font-medium">
         <a
@@ -414,6 +424,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
             ? "Agenda da clínica"
             : view === "patients"
               ? "Busca na rede nacional"
+              : view === "team"
+                ? "Gestão da equipe clínica"
             : view === "handoff"
               ? "Continuidade do cuidado"
             : view === "cases"
@@ -431,6 +443,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
             ? "Visualização dos agendametos marcados"
             : view === "patients"
               ? "Busca de pacientes"
+              : view === "team"
+                ? "Equipe clínica"
             : view === "handoff"
               ? "Handoff de Cuidado"
               : view === "cases"
