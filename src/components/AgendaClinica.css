@@ -1,0 +1,85 @@
+.agenda-calendar .fc {
+  --fc-border-color: #dfe8e1;
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: #f8faf7;
+  --fc-today-bg-color: #e7f3ee;
+  --fc-button-bg-color: #185a43;
+  --fc-button-border-color: #185a43;
+  --fc-button-hover-bg-color: #124936;
+  --fc-button-hover-border-color: #124936;
+  --fc-button-active-bg-color: #185a43;
+  --fc-button-active-border-color: #185a43;
+  --fc-event-border-color: transparent;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.agenda-calendar .fc-toolbar-title {
+  color: #185a43;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.agenda-calendar .fc-button {
+  border-radius: 0.625rem;
+  box-shadow: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  text-transform: capitalize;
+}
+
+.agenda-calendar .fc-button:focus {
+  box-shadow: 0 0 0 3px rgba(163, 217, 201, 0.55);
+}
+
+.agenda-calendar .fc-col-header-cell-cushion,
+.agenda-calendar .fc-daygrid-day-number {
+  color: #567266;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.65rem;
+  text-decoration: none;
+}
+
+.agenda-calendar .fc-day-today .fc-daygrid-day-number {
+  color: #185a43;
+}
+
+.agenda-calendar .fc-event {
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin: 2px 4px;
+  padding: 3px 5px;
+}
+
+.agenda-calendar .fc-timegrid-event {
+  border-radius: 0.375rem;
+  padding: 4px 6px;
+}
+
+.agenda-calendar .fc-timegrid-slot-label,
+.agenda-calendar .fc-timegrid-axis-cushion {
+  color: #8aa197;
+  font-size: 0.7rem;
+}
+
+.agenda-calendar .fc-timegrid-now-indicator-line {
+  border-color: #dfb461;
+}
+
+@media (max-width: 640px) {
+  .agenda-calendar .fc-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .agenda-calendar .fc-toolbar-chunk {
+    display: flex;
+    gap: 0.25rem;
+  }
+}
