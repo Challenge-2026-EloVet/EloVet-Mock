@@ -331,30 +331,6 @@ function Sidebar({
       </div>
       <nav className="space-y-2 text-sm font-medium">
         <button
-          onClick={onRecord}
-          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "record" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
-        >
-          <FileText size={19} /> Prontuário
-        </button>
-        <button
-          onClick={onEscriba}
-          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "escriba" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
-        >
-          <Mic size={19} /> Escriba de IA
-        </button>
-        <button
-          onClick={onHandoff}
-          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "handoff" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
-        >
-          <ListChecks size={19} /> Handoff de cuidado
-        </button>
-        <button
-          onClick={onCases}
-          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "cases" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
-        >
-          <ClipboardList size={19} /> Casos similares
-        </button>
-        <button
           onClick={onQueue}
           className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "queue" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
         >
@@ -365,6 +341,30 @@ function Sidebar({
           className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "agenda" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
         >
           <CalendarDays size={19} /> Agenda
+        </button>
+        <button
+          onClick={onRecord}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "record" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
+        >
+          <FileText size={19} /> Prontuário
+        </button>
+        <button
+          onClick={onEscriba}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "escriba" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
+        >
+          <Mic size={19} /> Bira IA
+        </button>
+        <button
+          onClick={onHandoff}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "handoff" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
+        >
+          <ListChecks size={19} /> Checklist de cuidado
+        </button>
+        <button
+          onClick={onCases}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "cases" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
+        >
+          <ClipboardList size={19} /> Casos similares
         </button>
         <button
           onClick={onPatients}
@@ -434,7 +434,7 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
       : view === "record"
         ? "Histórico de saúde"
         : view === "escriba"
-          ? "Escriba de IA"
+          ? "Bira IA"
           : view === "agenda"
             ? "Visualização dos agendametos marcados"
             : view === "patients"
@@ -442,7 +442,7 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
               : view === "team"
                 ? "Equipe clínica"
             : view === "handoff"
-              ? "Handoff de Cuidado"
+              ? "Checklist de Cuidado"
               : view === "cases"
                 ? "Casos clínicos similares"
                 : "";
@@ -1134,7 +1134,7 @@ function Escriba({
           </button>
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-[#185a43]">
-              Escriba de IA
+              Bira IA
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f3ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#39715b]">
               <Sparkles size={12} /> Beta
@@ -1186,7 +1186,7 @@ function Escriba({
               </div>
               <p className="mt-1 text-xs text-[#567266]">
                 {isCapturing
-                  ? "O Escriba está ouvindo e organizando as informações clínicas."
+                  ? "O Bira IA está ouvindo e organizando as informações clínicas."
                   : "A transcrição foi organizada no padrão SOAP."}
               </p>
             </div>
@@ -1240,7 +1240,7 @@ function Escriba({
           onClick={() => onHandoff(soap.plan)}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#185a43] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#185a43]/15 transition hover:bg-[#124936]"
         >
-          <ListChecks size={18} /> Gerar Handoff de Cuidado para o tutor{" "}
+          <ListChecks size={18} /> Gerar Checklist de Cuidado para o tutor{" "}
           <ChevronRight size={16} />
         </button>
       )}
@@ -1252,7 +1252,7 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
   const [toastVisible, setToastVisible] = useState(false);
   const tasks = plan
     ? plan.split(/\.\s+/).filter(Boolean)
-    : ["Simule o fim da consulta no Escriba para importar o Plano clínico."];
+    : ["Simule o fim da consulta no Bira IA para importar o Plano clínico."];
   const sendToWhatsApp = () => {
     setToastVisible(true);
     window.setTimeout(() => setToastVisible(false), 4200);
@@ -1265,11 +1265,11 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
             onClick={onBack}
             className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-[#7e9f8e] hover:text-[#185a43]"
           >
-            <ArrowLeft size={16} /> Voltar para o Escriba de IA
+            <ArrowLeft size={16} /> Voltar para o Bira IA
           </button>
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-[#185a43]">
-              Handoff de Cuidado
+              Checklist de Cuidado
             </h2>
             <span className="rounded-full bg-[#e7f3ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#39715b]">
               Plano pronto
@@ -1349,7 +1349,7 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
                 Origem
               </p>
               <p className="mt-1 text-xs text-[#567266]">
-                Escriba de IA • Consulta de hoje
+                Bira IA • Consulta de hoje
               </p>
             </div>
           </div>
@@ -1360,7 +1360,7 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
             </div>
             <p className="text-xs leading-5 text-[#71847b]">
               {plan ||
-                "Nenhum Plano gerado ainda. Volte ao Escriba e simule o fim da consulta."}
+                "Nenhum Plano gerado ainda. Volte ao Bira IA e simule o fim da consulta."}
             </p>
           </div>
         </aside>
