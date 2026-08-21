@@ -38,6 +38,7 @@ import { PainelCasosClinicos } from "./components/PainelCasosClinicos";
 import { AgendaClinica } from "./components/AgendaClinica";
 import { BuscaPacientes } from "./components/BuscaPacientes";
 import { EquipeClinica } from "./components/EquipeClinica";
+import logo from "./imgs/logo.png";
 
 type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients" | "team";
 type Status = "scheduled" | "check-in" | "consultation" | "finished";
@@ -318,12 +319,7 @@ function Sidebar({
     >
       <div className="mb-12 flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#a3d9c9] text-[#185a43]">
-            <PawPrint size={22} />
-          </span>
-          <span className="text-xl font-semibold tracking-tight">
-            elo<span className="font-light">vet</span>
-          </span>
+          <img src={logo} alt="Elo Vet" className="h-10 w-auto max-w-[160px] object-contain" />
         </div>
         <button
           onClick={onClose}
