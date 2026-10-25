@@ -21,11 +21,14 @@ import {
   MessageCircle,
   Mic,
   PawPrint,
+  FlaskConical,
+  LoaderCircle,
   Search,
   Settings,
   ShieldCheck,
   Sparkles,
   Stethoscope,
+  TriangleAlert,
   UserRound,
   Users,
   X,
@@ -39,6 +42,11 @@ import { AgendaClinica } from "./components/AgendaClinica";
 import { BuscaPacientes } from "./components/BuscaPacientes";
 import { EquipeClinica } from "./components/EquipeClinica";
 import logo from "./imgs/logo.png";
+import {
+  analisarConsulta,
+  type BiraAnalysis,
+  type BiraPet,
+} from "./services/biraAi";
 
 type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients" | "team";
 type Status = "scheduled" | "check-in" | "consultation" | "finished";
@@ -54,6 +62,11 @@ type Pet = {
   note?: string;
 };
 type WeightPoint = { month: string; weight: number };
+type HandoffData = {
+  plan: string;
+  analysis: BiraAnalysis | null;
+  error?: string;
+};
 const columns: { id: Status; label: string; icon: typeof CalendarDays }[] = [
   { id: "scheduled", label: "Agendados", icon: CalendarDays },
   { id: "check-in", label: "Aguardando Check-in", icon: CarFront },
@@ -193,7 +206,10 @@ function App() {
   const [view, setView] = useState<View>("queue");
   const [pets, setPets] = useState(initialPets);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [handoffPlan, setHandoffPlan] = useState("");
+  const [handoff, setHandoff] = useState<HandoffData>({
+    plan: "",
+    analysis: null,
+  });
   const advanceStatus = (id: number) =>
     setPets((current) =>
       current.map((pet) =>
@@ -214,8 +230,8 @@ function App() {
     setView("escriba");
     setMenuOpen(false);
   };
-  const openHandoff = (plan: string) => {
-    setHandoffPlan(plan);
+  const openHandoff = (data: HandoffData) => {
+    setHandoff(data);
     setView("handoff");
     setMenuOpen(false);
   };
@@ -249,7 +265,7 @@ function App() {
         onQueue={openQueue}
         onRecord={openRecord}
         onEscriba={openEscriba}
-        onHandoff={() => openHandoff(handoffPlan)}
+        onHandoff={() => openHandoff(handoff)}
         onCases={openCases}
         onAgenda={openAgenda}
         onPatients={openPatients}
@@ -273,7 +289,7 @@ function App() {
         ) : view === "escriba" ? (
           <Escriba onBack={openQueue} onHandoff={openHandoff} />
         ) : view === "handoff" ? (
-          <Handoff plan={handoffPlan} onBack={openEscriba} />
+          <Handoff {...handoff} onBack={openEscriba} />
         ) : view === "cases" ? (
           <PainelCasosClinicos onBack={openQueue} />
         ) : view === "agenda" ? (
@@ -1073,14 +1089,25 @@ const simulatedSoap: SoapNote = {
   plan: "Repouso estrito e restrição de escadas por 14 dias. Iniciar analgesia conforme prescrição. Solicitar radiografia da coluna e considerar ressonância magnética se houver progressão neurológica. Retorno em 48 horas.",
 };
 
+const pacienteConsulta: BiraPet = {
+  id: "ELO-1234",
+  nome: "Thor",
+  especie: "Cão",
+  raca: "Dachshund",
+  idade_anos: 4,
+  peso_kg: 9,
+};
+const veterinarioConsulta = "Dra. Helena Costa";
+
 function Escriba({
   onBack,
   onHandoff,
 }: {
   onBack: () => void;
-  onHandoff: (plan: string) => void;
+  onHandoff: (data: HandoffData) => void;
 }) {
   const [isCapturing, setIsCapturing] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [soap, setSoap] = useState<SoapNote>({
     subjective: "",
     objective: "",
@@ -1090,6 +1117,28 @@ function Escriba({
   const simulateEnd = () => {
     setSoap(simulatedSoap);
     setIsCapturing(false);
+  };
+  const generateChecklist = async () => {
+    setIsGenerating(true);
+    try {
+      const analysis = await analisarConsulta({
+        pet: pacienteConsulta,
+        soap,
+        veterinario: veterinarioConsulta,
+      });
+      onHandoff({ plan: soap.plan, analysis });
+    } catch (error) {
+      onHandoff({
+        plan: soap.plan,
+        analysis: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha inesperada ao chamar o Bira IA.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
   const blocks: {
     key: keyof SoapNote;
@@ -1237,22 +1286,59 @@ function Escriba({
       </div>
       {soap.plan && (
         <button
-          onClick={() => onHandoff(soap.plan)}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#185a43] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#185a43]/15 transition hover:bg-[#124936]"
+          onClick={generateChecklist}
+          disabled={isGenerating}
+          aria-busy={isGenerating}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#185a43] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#185a43]/15 transition hover:bg-[#124936] disabled:cursor-wait disabled:opacity-80"
         >
-          <ListChecks size={18} /> Gerar Checklist de Cuidado para o tutor{" "}
-          <ChevronRight size={16} />
+          {isGenerating ? (
+            <>
+              <LoaderCircle size={18} className="animate-spin" /> Bira IA
+              gerando o plano de cuidados...
+            </>
+          ) : (
+            <>
+              <ListChecks size={18} /> Gerar Checklist de Cuidado para o
+              tutor <ChevronRight size={16} />
+            </>
+          )}
         </button>
       )}
     </div>
   );
 }
 
-function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
+const riskStyles: Record<BiraAnalysis["risco_epidemiologico"], string> = {
+  BAIXO: "bg-[#d9f1e4] text-[#218c61]",
+  MÉDIO: "bg-[#f8ecd0] text-[#9a6b12]",
+  ALTO: "bg-[#f9dcd6] text-[#b23b2a]",
+};
+const origemLabel: Record<BiraAnalysis["origem"], string> = {
+  gemini: "Bira IA • Gemini (inferência real)",
+  mock: "Bira IA • Modo simulado (sem chave de IA)",
+  fallback: "Bira IA • Contingência (IA indisponível)",
+};
+
+function Handoff({
+  plan,
+  analysis,
+  error,
+  onBack,
+}: HandoffData & { onBack: () => void }) {
   const [toastVisible, setToastVisible] = useState(false);
-  const tasks = plan
-    ? plan.split(/\.\s+/).filter(Boolean)
-    : ["Simule o fim da consulta no Bira IA para importar o Plano clínico."];
+  const tasks: { tarefa: string; horario?: string }[] = analysis
+    ? analysis.checklist_tratamento
+    : plan
+      ? plan
+          .split(/\.\s+/)
+          .filter(Boolean)
+          .map((tarefa) => ({ tarefa: tarefa.replace(/[.]$/, "") }))
+      : [
+          {
+            tarefa:
+              "Simule o fim da consulta no Bira IA para importar o Plano clínico.",
+          },
+        ];
   const sendToWhatsApp = () => {
     setToastVisible(true);
     window.setTimeout(() => setToastVisible(false), 4200);
@@ -1271,8 +1357,14 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
             <h2 className="text-3xl font-semibold tracking-tight text-[#185a43]">
               Checklist de Cuidado
             </h2>
-            <span className="rounded-full bg-[#e7f3ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#39715b]">
-              Plano pronto
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f3ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#39715b]">
+              {analysis ? (
+                <>
+                  <Sparkles size={12} /> Gerado pelo Bira IA
+                </>
+              ) : (
+                "Plano pronto"
+              )}
             </span>
           </div>
           <p className="mt-2 text-sm text-[#71847b]">
@@ -1292,6 +1384,21 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
           </div>
         </div>
       </div>
+      {error && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-3 rounded-2xl border border-[#ecd29a] bg-[#fdf6e7] p-4"
+        >
+          <TriangleAlert size={18} className="mt-0.5 shrink-0 text-[#b8862b]" />
+          <div>
+            <p className="text-sm font-semibold text-[#7a5a1c]">{error}</p>
+            <p className="mt-0.5 text-xs leading-5 text-[#8f7440]">
+              Exibindo o checklist extraído diretamente do Plano SOAP. Revise
+              antes de enviar ao tutor.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
         <section className="rounded-2xl border border-[#dfe8e1] bg-white p-5 sm:p-7">
           <div className="mb-6 flex items-start justify-between gap-4">
@@ -1310,21 +1417,54 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
               <PawPrint size={21} />
             </span>
           </div>
+          {analysis && (
+            <p className="mb-5 rounded-xl bg-[#e7f3ee] p-4 text-sm leading-6 text-[#38584a]">
+              {analysis.mensagem_acolhimento_tutor}
+            </p>
+          )}
           <div className="space-y-3">
             {tasks.map((task, index) => (
               <div
-                key={`${task}-${index}`}
+                key={`${task.tarefa}-${index}`}
                 className="flex gap-4 rounded-xl border border-[#e2ebe5] bg-[#fbfcfa] p-4"
               >
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#185a43] text-xs font-bold text-white">
                   {index + 1}
                 </span>
-                <p className="pt-0.5 text-sm leading-6 text-[#38584a]">
-                  {task.replace(/[.]$/, "")}
-                </p>
+                <div className="pt-0.5">
+                  <p className="text-sm leading-6 text-[#38584a]">
+                    {task.tarefa}
+                  </p>
+                  {task.horario && (
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-[#7e9f8e]">
+                      <Clock3 size={13} /> {task.horario}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+          {analysis && analysis.checklist_prevencao.length > 0 && (
+            <div className="mt-6">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#185a43]">
+                <ShieldCheck size={16} /> Prevenção para o dia a dia
+              </h4>
+              <ul className="space-y-2">
+                {analysis.checklist_prevencao.map((item, index) => (
+                  <li
+                    key={`${item}-${index}`}
+                    className="flex gap-3 text-sm leading-6 text-[#567266]"
+                  >
+                    <Check
+                      size={16}
+                      className="mt-1 shrink-0 text-[#3d9f81]"
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <button
             onClick={sendToWhatsApp}
             className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#218c61] px-5 py-4 text-sm font-bold text-white shadow-lg shadow-[#218c61]/20 transition hover:bg-[#18734e]"
@@ -1341,18 +1481,63 @@ function Handoff({ plan, onBack }: { plan: string; onBack: () => void }) {
               <ShieldCheck size={17} /> Handoff revisado pela clínica
             </div>
             <p className="text-sm leading-6 text-[#567266]">
-              O conteúdo abaixo foi extraído do Plano SOAP e convertido para uma
-              linguagem de acompanhamento diário.
+              {analysis
+                ? "O Bira IA cruzou as notas SOAP com as predisposições da raça e traduziu o plano para uma linguagem de acompanhamento diário."
+                : "O conteúdo foi extraído do Plano SOAP e convertido para uma linguagem de acompanhamento diário."}
             </p>
             <div className="mt-5 border-t border-[#c7e2d8] pt-4">
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#7e9f8e]">
                 Origem
               </p>
               <p className="mt-1 text-xs text-[#567266]">
-                Bira IA • Consulta de hoje
+                {analysis
+                  ? origemLabel[analysis.origem]
+                  : "Plano SOAP • Consulta de hoje"}
               </p>
             </div>
           </div>
+          {analysis && (
+            <div className="rounded-2xl border border-[#dfe8e1] bg-white p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#38584a]">
+                  <Stethoscope size={16} className="text-[#7e9f8e]" /> Apoio
+                  clínico
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${riskStyles[analysis.risco_epidemiologico]}`}
+                >
+                  Risco {analysis.risco_epidemiologico}
+                </span>
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#7e9f8e]">
+                Diagnóstico provável
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[#567266]">
+                {analysis.diagnostico_provavel}
+              </p>
+              {analysis.sugestoes_exames.length > 0 && (
+                <>
+                  <p className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#7e9f8e]">
+                    Exames sugeridos
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {analysis.sugestoes_exames.map((exame, index) => (
+                      <li
+                        key={`${exame}-${index}`}
+                        className="flex gap-2 text-xs leading-5 text-[#567266]"
+                      >
+                        <FlaskConical
+                          size={14}
+                          className="mt-0.5 shrink-0 text-[#7e9f8e]"
+                        />
+                        {exame}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
           <div className="rounded-2xl border border-[#dfe8e1] bg-white p-5">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#38584a]">
               <FileText size={16} className="text-[#7e9f8e]" /> Plano SOAP
