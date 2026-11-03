@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -29,6 +29,7 @@ import {
   Sparkles,
   Stethoscope,
   TriangleAlert,
+  UserPlus,
   UserRound,
   Users,
   X,
@@ -41,6 +42,9 @@ import { PainelCasosClinicos } from "./components/PainelCasosClinicos";
 import { AgendaClinica } from "./components/AgendaClinica";
 import { BuscaPacientes } from "./components/BuscaPacientes";
 import { EquipeClinica } from "./components/EquipeClinica";
+import { Login } from "./components/Login";
+import { CadastroUsuario } from "./components/CadastroUsuario";
+import { carregarSessao, encerrarSessao, iniciais, type Sessao } from "./services/sessao";
 import logo from "./imgs/logo.png";
 import {
   analisarConsulta,
@@ -48,7 +52,7 @@ import {
   type BiraPet,
 } from "./services/biraAi";
 
-type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients" | "team";
+type View = "queue" | "record" | "escriba" | "handoff" | "cases" | "agenda" | "patients" | "team" | "users";
 type Status = "scheduled" | "check-in" | "consultation" | "finished";
 type Pet = {
   id: number;
@@ -203,6 +207,7 @@ const timeline = [
 ];
 
 function App() {
+  const [sessao, setSessao] = useState<Sessao | null>(carregarSessao);
   const [view, setView] = useState<View>("queue");
   const [pets, setPets] = useState(initialPets);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -251,6 +256,23 @@ function App() {
     setView("team");
     setMenuOpen(false);
   };
+  const openUsers = () => {
+    setView("users");
+    setMenuOpen(false);
+  };
+  const sair = () => {
+    encerrarSessao();
+    setSessao(null);
+    setView("queue");
+    setMenuOpen(false);
+  };
+
+  // Encerra a sessão automaticamente quando o token JWT expira.
+  useEffect(() => {
+    if (!sessao) return;
+    const timeout = window.setTimeout(sair, Math.max(sessao.expiraEm - Date.now(), 0));
+    return () => window.clearTimeout(timeout);
+  }, [sessao]);
   const thorRisk = calcularRiscoEpidemiologico({
     raca: "Dachshund",
     idade: 4,
@@ -258,6 +280,10 @@ function App() {
     especie: "cão",
     data_ultimo_checkup: "2026-03-12",
   });
+  if (!sessao) {
+    return <Login onEntrar={setSessao} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f7f3] text-[#20352d]">
       <Sidebar
@@ -270,11 +296,14 @@ function App() {
         onAgenda={openAgenda}
         onPatients={openPatients}
         onTeam={openTeam}
+        onUsers={openUsers}
+        usuario={sessao.email}
+        onLogout={sair}
         menuOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
       />
       <main className="lg:pl-64">
-        <Header view={view} onMenu={() => setMenuOpen(true)} />
+        <Header view={view} usuario={sessao.email} onMenu={() => setMenuOpen(true)} />
         {view === "queue" ? (
           <Queue
             pets={pets}
@@ -298,6 +327,8 @@ function App() {
           <BuscaPacientes onBack={openQueue} onOpenRecord={openRecord} />
         ) : view === "team" ? (
           <EquipeClinica onBack={openQueue} />
+        ) : view === "users" ? (
+          <CadastroUsuario token={sessao.token} onBack={openQueue} onSessaoExpirada={sair} />
         ) : null}
       </main>
     </div>
@@ -314,6 +345,9 @@ function Sidebar({
   onAgenda,
   onPatients,
   onTeam,
+  onUsers,
+  usuario,
+  onLogout,
   menuOpen,
   onClose,
 }: {
@@ -326,6 +360,9 @@ function Sidebar({
   onAgenda: () => void;
   onPatients: () => void;
   onTeam: () => void;
+  onUsers: () => void;
+  usuario: string;
+  onLogout: () => void;
   menuOpen: boolean;
   onClose: () => void;
 }) {
@@ -394,6 +431,12 @@ function Sidebar({
         >
           <Users size={19} /> Equipe
         </button>
+        <button
+          onClick={onUsers}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${view === "users" ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10"}`}
+        >
+          <UserPlus size={19} /> Usuários
+        </button>
       </nav>
       <div className="mt-auto space-y-2 text-sm font-medium">
         <a
@@ -410,21 +453,28 @@ function Sidebar({
         </a>
         <div className="my-4 border-t border-white/15" />
         <div className="flex items-center gap-3 rounded-xl px-3 py-3">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#dfb461] text-sm font-bold text-[#185a43]">
-            HC
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#dfb461] text-sm font-bold text-[#185a43]">
+            {iniciais(usuario)}
           </span>
-          <div>
-            <p className="text-sm">Helena Costa</p>
-            <p className="text-xs text-white/55">Administradora</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm" title={usuario}>{usuario}</p>
+            <p className="text-xs text-white/55">Equipe da clínica</p>
           </div>
-          <LogOut size={16} className="ml-auto text-white/50" />
+          <button
+            onClick={onLogout}
+            className="ml-auto rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+            aria-label="Sair do portal"
+            title="Sair"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
     </aside>
   );
 }
 
-function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
+function Header({ view, usuario, onMenu }: { view: View; usuario: string; onMenu: () => void }) {
   const eyebrow =
     view === "queue"
       ? "Operação clínica"
@@ -438,6 +488,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
               ? "Busca na rede nacional"
               : view === "team"
                 ? "Gestão da equipe clínica"
+              : view === "users"
+                ? "Acesso ao ecossistema"
             : view === "handoff"
               ? "Continuidade do cuidado"
             : view === "cases"
@@ -457,6 +509,8 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
               ? "Busca de pacientes"
               : view === "team"
                 ? "Equipe clínica"
+              : view === "users"
+                ? "Cadastro de usuários"
             : view === "handoff"
               ? "Checklist de Cuidado"
               : view === "cases"
@@ -496,8 +550,11 @@ function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#dfb461]" />
         </button>
         <span className="hidden h-9 w-px bg-[#dfe8e1] sm:block" />
-        <div className="grid h-9 w-9 place-items-center rounded-full bg-[#d8ebe4] text-sm font-bold text-[#185a43]">
-          HC
+        <div
+          className="grid h-9 w-9 place-items-center rounded-full bg-[#d8ebe4] text-sm font-bold text-[#185a43]"
+          title={usuario}
+        >
+          {iniciais(usuario)}
         </div>
       </div>
     </header>
