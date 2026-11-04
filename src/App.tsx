@@ -530,7 +530,10 @@ function Header({ view, usuario, onMenu }: { view: View; usuario: string; onMenu
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7e9f8e]">
             {eyebrow}
           </p>
-          <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-[#185a43] sm:text-2xl">
+          <h1
+            id="titulo-pagina"
+            className="mt-0.5 text-xl font-semibold tracking-tight text-[#185a43] sm:text-2xl"
+          >
             {title}
           </h1>
         </div>

@@ -1,3 +1,4 @@
+
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, LoaderCircle, LogIn, ShieldCheck, TriangleAlert } from "lucide-react";
 import logo from "../imgs/logo.png";
@@ -17,13 +18,16 @@ export function Login({ onEntrar }: { onEntrar: (sessao: Sessao) => void }) {
     setErro(null);
     setErrosCampos({});
     setEnviando(true);
+
     try {
       const resposta = await login(email.trim(), senha);
+
       // O portal é exclusivo da equipe da clínica: tutores (RESPONSAVEL) acessam pelo app mobile.
       if (resposta.idResponsavel != null) {
         setErro("Este acesso é exclusivo da equipe da clínica. Tutores devem usar o app Elo Vet.");
         return;
       }
+
       const sessao = criarSessao(resposta.token);
       salvarSessao(sessao);
       onEntrar(sessao);
@@ -69,9 +73,10 @@ export function Login({ onEntrar }: { onEntrar: (sessao: Sessao) => void }) {
           <p className="mt-2 text-sm text-[#71847b]">Use o e-mail e a senha cadastrados pela administração da clínica.</p>
 
           <form onSubmit={entrar} noValidate className="mt-8 space-y-4">
-            <label className="block text-xs font-semibold text-[#567266]">
+            <label htmlFor="email" className="block text-xs font-semibold text-[#567266]">
               E-mail
               <input
+                id="email"
                 type="email"
                 autoComplete="username"
                 required
@@ -84,10 +89,11 @@ export function Login({ onEntrar }: { onEntrar: (sessao: Sessao) => void }) {
               {errosCampos.email && <span className="mt-1 block font-normal text-[#b5513f]">{errosCampos.email}</span>}
             </label>
 
-            <label className="block text-xs font-semibold text-[#567266]">
+            <label htmlFor="senha" className="block text-xs font-semibold text-[#567266]">
               Senha
               <span className="relative mt-1.5 block">
                 <input
+                  id="senha"
                   type={mostrarSenha ? "text" : "password"}
                   autoComplete="current-password"
                   required
@@ -98,6 +104,7 @@ export function Login({ onEntrar }: { onEntrar: (sessao: Sessao) => void }) {
                   className={`h-11 w-full rounded-xl border bg-white pl-3 pr-11 text-sm font-normal text-[#38584a] outline-none focus:border-[#185a43] ${errosCampos.senha ? "border-[#c9604f]" : "border-[#dfe8e1]"}`}
                 />
                 <button
+                  id="toggle-senha"
                   type="button"
                   onClick={() => setMostrarSenha((atual) => !atual)}
                   aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
@@ -116,6 +123,7 @@ export function Login({ onEntrar }: { onEntrar: (sessao: Sessao) => void }) {
             )}
 
             <button
+              id="btn-entrar"
               type="submit"
               disabled={enviando}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#185a43] text-sm font-bold text-white shadow-lg shadow-[#185a43]/15 transition hover:bg-[#124936] disabled:cursor-wait disabled:opacity-70"
